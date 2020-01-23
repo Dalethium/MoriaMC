@@ -23,7 +23,7 @@ import net.minecraft.world.RayTraceContext;
 public class ExampleMod implements ModInitializer {
 	private static FabricKeyBinding keyBinding;
 	public  static boolean active = false;
-
+	public static boolean d = false;
 	private static int radius = 5;
 	public static final MinecraftClient MC = MinecraftClient.getInstance();
 	@Override
@@ -58,17 +58,35 @@ public class ExampleMod implements ModInitializer {
 		    return false;
 		  }
 	public static void checkAround(int x, int y, int z) {
+		d = true;
 		for (int xx = -radius; xx <= radius; xx++) {
 			for (int yy = -radius; yy <= radius; yy++) {
 				for (int zz = -radius; zz <= radius; zz++) {
 					BlockPos pos = new BlockPos(xx + x, yy + y, zz + z);
+					
+					if (!BlockUtils.getState(pos).isAir()) {
+						continue;
+					}
+					
 					int light = MC.world.getLightLevel(net.minecraft.world.LightType.BLOCK, pos);
+					//System.out.println(pos.toString() + " " + light);
+					
 					if (light <= 7) {
-						if (placeTorch(new BlockPos(xx + x, yy + y, zz + z))) return;
+						if (placeTorch(new BlockPos(xx + x, yy + y, zz + z))) {
+							d = false;
+							return;
+						}
+					}
+					try {
+						Thread.sleep(1);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
 				}
 			}
 		}
+		d = false;
 	}
 
 	public static Vec3d getEyesPos() {
@@ -129,24 +147,11 @@ public class ExampleMod implements ModInitializer {
 			if (eyesPos.squaredDistanceTo(hitVec) > rangeSq)
 				continue;
 
-			// check if side is visible (facing away from player)
-			if (distanceSqPosVec > eyesPos.squaredDistanceTo(posVec.add(dirVec)))
-				continue;
-
-			// check line of sight
-			if (MC.world.rayTrace(new RayTraceContext(getEyesPos(), hitVec, RayTraceContext.ShapeType.COLLIDER, RayTraceContext.FluidHandling.NONE, MC.player)).getType() != HitResult.Type.MISS)
-				continue;
-
-			// face block
-			Rotation rotation = getNeededRotations(hitVec);
-			PlayerMoveC2SPacket.LookOnly packet = new PlayerMoveC2SPacket.LookOnly(rotation.getYaw(), rotation.getPitch(), MC.player.onGround);
-			MC.player.networkHandler.sendPacket(packet);
-
 			// place block
 			int s = MC.player.inventory.selectedSlot;
+			if (hasTorch() == -1) return false;
 			MC.player.inventory.selectedSlot = hasTorch();
 			MC.interactionManager.interactBlock(MC.player, MC.world, Hand.MAIN_HAND, new BlockHitResult(hitVec, side, pos, false));
-			MC.interactionManager.interactItem(MC.player, MC.world, Hand.MAIN_HAND);
 			//MC.player.swingHand(Hand.MAIN_HAND);
 			MC.player.inventory.selectedSlot = s;
 			return true;

@@ -22,8 +22,13 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 	    if (!this.world.isClient) {
 	      return;
 	    }
-	    if (ExampleMod.active) {
-	    	if (ExampleMod.hasTorch() != -1) ExampleMod.checkAround((int) Math.round(this.getPos().x), (int) Math.round(this.getPos().y), (int) Math.round(this.getPos().z));
+	    if (ExampleMod.active && !ExampleMod.d) {
+	    	new Thread() {
+	    	
+	    	 public void run() {
+	    		if (ExampleMod.hasTorch() != -1) ExampleMod.checkAround((int) Math.round(ExampleMod.MC.player.getPos().x), (int) Math.round(ExampleMod.MC.player.getPos().y), (int) Math.round(ExampleMod.MC.player.getPos().z));
+	    	}
+	    		}.start();;
 	    }
 	  }
 
